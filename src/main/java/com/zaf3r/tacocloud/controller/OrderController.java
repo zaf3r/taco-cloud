@@ -18,11 +18,4 @@ public class OrderController {
         model.addAttribute("order", new Order());
         return "orderForm";
     }
-
-    @PostMapping
-    public String processDesign(Design design) {
-        //Save to db
-        log.info("Processing design: " + design);
-        return "redirect:/orders/current";
-    }
 }

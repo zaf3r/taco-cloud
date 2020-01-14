@@ -43,12 +43,16 @@ public class DesignTacoController {
         model.addAttribute("design", new Taco());
         return "design";
     }
+    @PostMapping
+    public String processDesign(Design design) {
+        //Save to db
+        log.info("Processing design: " + design);
+        return "redirect:/orders/current";
+    }
 
     public List<Ingredient> filterByType(List<Ingredient> ingredients, Type type) {
         return ingredients.stream()
                 .filter(ingredient -> ingredient.getType().equals(type))
                 .collect(Collectors.toList());
     }
-
-
 }
