@@ -1,0 +1,23 @@
+spring:
+  profiles:
+    active:
+      - prod
+
+logging:
+  level:
+    tacos: DEBUG
+
+---
+spring:
+  profiles: develop
+  datasource:
+    password: tacopassword
+    username: tacouser
+    driver-class-name: org.h2.Driver
+
+logging:
+  level:
+    tacos: WARN
+
+
+
