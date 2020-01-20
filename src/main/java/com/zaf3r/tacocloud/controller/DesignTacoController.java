@@ -1,26 +1,25 @@
 package com.zaf3r.tacocloud.controller;
 
-import com.zaf3r.tacocloud.model.Design;
-import com.zaf3r.tacocloud.model.Ingredient;
+import com.zaf3r.tacocloud.api.TacoResource;
+import com.zaf3r.tacocloud.api.TacoResourceAssembler;
 import com.zaf3r.tacocloud.model.Taco;
 import com.zaf3r.tacocloud.repository.TacoRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import com.zaf3r.tacocloud.model.Ingredient.Type;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import java.util.Arrays;
-import java.util.Collection;
+
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -35,10 +34,16 @@ public class DesignTacoController {
         this.tacoRepo = tacoRepo;
     }
 
-    @GetMapping
-    public Collection<Taco> recentTacos(){
-        PageRequest page = PageRequest.of(0,12, Sort.by("createdAt").descending());
-        return tacoRepo.findAll(page).getContent();
+    @GetMapping("/recent")
+    public CollectionModel<TacoResource> recentTacos() {
+        PageRequest page = PageRequest.of(
+                0, 12, Sort.by("createdAt").descending());
+        List<Taco> tacos = tacoRepo.findAll(page).getContent();
+        CollectionModel<TacoResource> tacoResources = new TacoResourceAssembler().toCollectionModel(tacos);
+        tacoResources.add(
+            linkTo(methodOn(DesignTacoController.class).recentTacos())
+                    .withRel("recents"));
+        return tacoResources;
     }
 
     @GetMapping("/{id}")
