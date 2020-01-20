@@ -17,7 +17,7 @@ public class Taco {
     private Date createdAt;
 
     @ManyToMany(targetEntity = Ingredient.class)
-    private List<String> ingredients;
+    private List<Ingredient> ingredients;
 
     @PrePersist
     void createdAt(){

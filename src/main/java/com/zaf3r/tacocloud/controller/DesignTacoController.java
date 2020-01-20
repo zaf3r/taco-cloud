@@ -1,58 +1,64 @@
 package com.zaf3r.tacocloud.controller;
 
-import com.zaf3r.tacocloud.model.Design;
-import com.zaf3r.tacocloud.model.Ingredient;
+import com.zaf3r.tacocloud.api.TacoResource;
+import com.zaf3r.tacocloud.api.TacoResourceAssembler;
 import com.zaf3r.tacocloud.model.Taco;
+import com.zaf3r.tacocloud.repository.TacoRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import com.zaf3r.tacocloud.model.Ingredient.Type;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import java.util.Arrays;
+
 import java.util.List;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Slf4j
-@Controller
-@RequestMapping("/design")
+@RestController
+@RequestMapping(value = "/design", produces = "application/json")
+@CrossOrigin(origins = "*")
 public class DesignTacoController {
 
-    @GetMapping
-    public String showDesignForm(Model model) {
-        List<Ingredient> ingredients = Arrays.asList(
-                new Ingredient("FLTO", "Flour Tortilla", Type.WRAP),
-                new Ingredient("COTO", "Corn Tortilla", Type.WRAP),
-                new Ingredient("GRBF", "Ground Beef", Type.PROTEIN),
-                new Ingredient("CARN", "Carnitas", Type.PROTEIN),
-                new Ingredient("TMTO", "Diced Tomatoes", Type.VEGGIES),
-                new Ingredient("LETC", "Lettuce", Type.VEGGIES),
-                new Ingredient("CHED", "Cheddar", Type.CHEESE),
-                new Ingredient("JACK", "Monterrey Jack", Type.CHEESE),
-                new Ingredient("SLSA", "Salsa", Type.SAUCE),
-                new Ingredient("SRCR", "Sour Cream", Type.SAUCE)
-        );
-        Type[] types = Ingredient.Type.values();
-        for (Type type : types) {
-            model.addAttribute(type.toString().toLowerCase(),
-                    filterByType(ingredients, type));
-        }
-        model.addAttribute("design", new Taco());
-        return "design";
-    }
-    @PostMapping
-    public String processDesign(Design design) {
-        //Save to db
-        log.info("Processing design: " + design);
-        return "redirect:/orders/current";
+    @Autowired
+    private TacoRepository tacoRepo;
+
+    public DesignTacoController(TacoRepository tacoRepo) {
+        this.tacoRepo = tacoRepo;
     }
 
-    public List<Ingredient> filterByType(List<Ingredient> ingredients, Type type) {
-        return ingredients.stream()
-                .filter(ingredient -> ingredient.getType().equals(type))
-                .collect(Collectors.toList());
+    @GetMapping("/recent")
+    public CollectionModel<TacoResource> recentTacos() {
+        PageRequest page = PageRequest.of(
+                0, 12, Sort.by("createdAt").descending());
+        List<Taco> tacos = tacoRepo.findAll(page).getContent();
+        CollectionModel<TacoResource> tacoResources = new TacoResourceAssembler().toCollectionModel(tacos);
+        tacoResources.add(
+            linkTo(methodOn(DesignTacoController.class).recentTacos())
+                    .withRel("recents"));
+        return tacoResources;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Taco> tacoById(@PathVariable("id") long id){
+        Optional<Taco> optTaco = tacoRepo.findById(id);
+        if(optTaco.isPresent()){
+            return new ResponseEntity<>(optTaco.get(), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @PostMapping(consumes="application/json")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Taco postTaco(@RequestBody Taco taco) {
+        return tacoRepo.save(taco);
     }
 }
